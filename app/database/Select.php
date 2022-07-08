@@ -3,44 +3,123 @@ namespace app\database;
 
 class Select
 {
-    private string $sql;
-    private bool $where = false;
-    private array $binds = [];
+    private array $query = [];
+
+    // private ?string $sql;
+    // private ?string $order;
+    // private ?string $limit;
+    // private array $where = [];
+    // private array $join = [];
+    // private array $binds = [];
 
     public function query(string $query)
     {
-        $this->sql = $query;
+        $this->query = [];
+
+        if (!isset($this->query['sql'])) {
+            $this->query['sql'] = null;
+        }
+
+        $this->query['sql'] = $query;
 
         return $this;
     }
 
     public function where(string $field, string $operator, mixed $value, ?string $type = null)
     {
-        (!$this->where) ?
-            $this->sql.= " where {$field} {$operator} :{$field} {$type}":
-            $this->sql.= " {$field} {$operator} :{$field}";
+        if (!isset($this->query['where'])) {
+            $this->query['where'] = [];
+        }
 
-        $this->sql = rtrim($this->sql);
+        if (!isset($this->query['binds'])) {
+            $this->query['binds'] = [];
+        }
 
-        $this->binds[$field] = $value;
+        $fieldPlaceholder = $field;
 
-        $this->where = true;
+        if (str_contains($fieldPlaceholder, '.')) {
+            $fieldPlaceholder = str_replace('.', '', $fieldPlaceholder);
+        }
+
+        $this->query['where'][] = "{$field} {$operator} :{$fieldPlaceholder} {$type} ";
+
+        $this->query['binds'][$fieldPlaceholder] = $value;
+
+        return $this;
+    }
+
+    public function join(string $join)
+    {
+        if (!isset($this->query['join'])) {
+            $this->query['join'] = [];
+        }
+
+        $this->query['join'][] = " {$join}";
 
         return $this;
     }
 
     public function order(string $order)
     {
-        $this->sql.= " {$order}";
+        if (!isset($this->query['order'])) {
+            $this->query['order'] = null;
+        }
 
+        $this->query['order'] = " {$order}";
+        
         return $this;
+    }
+    
+    public function limit(int $limit)
+    {
+        if (!isset($this->query['limit'])) {
+            $this->query['limit'] = null;
+        }
+
+        $this->query['limit'] = " limit {$limit}";
+    
+        return $this;
+    }
+
+
+    public function dump()
+    {
+        $this->query['sql'].= (!empty($this->query['join'])) ? rtrim(implode('', $this->query['join'])) : '';
+        $this->query['sql'].= (!empty($this->query['where'])) ? rtrim(' where '.implode('', $this->query['where'])) : '';
+        $this->query['sql'].= $this->query['order'] ?? '';
+        $this->query['sql'].= $this->query['limit'] ?? '';
     }
 
     public function get()
     {
+        $this->dump();
+
+        $connection = Connection::getConnection();
+
+        $prepare = $connection->prepare($this->query['sql']);
+        $prepare->execute($this->query['binds'] ?? []);
+        return $prepare->fetchAll();
+    }
+
+
+    public function first()
+    {
+        $this->dump();
+
+        $connection = Connection::getConnection();
+
+        $prepare = $connection->prepare($this->query['sql']);
+        $prepare->execute($this->query['binds'] ?? []);
+        return $prepare->fetchObject();
+    }
+
+    public function test()
+    {
+        $this->dump();
+
         return (object)[
-            'sql' => $this->sql,
-            'binds' => $this->binds
+            'sql' => $this->query['sql'],
+            'binds' => $this->query['binds'] ?? []
         ];
     }
 }
