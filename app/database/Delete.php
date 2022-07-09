@@ -1,25 +1,34 @@
 <?php
 namespace app\database;
 
-class Delete {
-
+class Delete
+{
     private string $sql;
-    private array $where;
+    private array $where = [];
 
-    public function delete(string $table, array $where)
+    public function delete(string $table)
     {
-        // delete from users where id = :id
-        $this->where = $where;
-
         $this->sql = "delete from {$table}";
-        $this->sql .= " where {$this->where[0]} = :{$this->where[0]}";
 
+        return $this;
+    }
+
+    public function where(string $field, string $operator, string $value)
+    {
+        $this->where['placeholder'] = " where {$field} {$operator} :{$field}";
+        $this->where['execute'] = [$field => $value];
+
+        $this->sql.= $this->where['placeholder'];
 
         return $this;
     }
 
     public function execute()
     {
+        if (empty($this->where)) {
+            throw new \Exception("I need where do delete");
+        }
+
         $connection = Connection::getConnection();
         $prepare = $connection->prepare($this->sql);
         return $prepare->execute([$this->where[0] => $this->where[1]]);
@@ -27,6 +36,10 @@ class Delete {
 
     public function getSql()
     {
-     return $this->sql;   
+        if (empty($this->where)) {
+            throw new \Exception("I need where do delete");
+        }
+
+        return $this->sql;
     }
 }
