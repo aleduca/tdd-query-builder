@@ -31,7 +31,7 @@ class Delete
 
         $connection = Connection::getConnection();
         $prepare = $connection->prepare($this->sql);
-        return $prepare->execute([$this->where[0] => $this->where[1]]);
+        return $prepare->execute($this->where['execute']);
     }
 
     public function getSql()
