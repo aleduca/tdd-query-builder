@@ -64,7 +64,7 @@ class SelectTest extends TestCase
     public function test_get_select_with_order_by()
     {
         $query = $this->select->query("select * from users")
-        ->order("order by id desc")
+        ->order("id", "desc")
         ->test();
 
         $this->assertEquals("select * from users order by id desc", $query->sql);
@@ -73,7 +73,7 @@ class SelectTest extends TestCase
     public function test_get_select_with_conditional_and_orderby_with_differente_order()
     {
         $query = $this->select->query("select * from users")
-        ->order("order by id desc")
+        ->order("id", "desc")
         ->where('id', '>', 10)
         ->test();
 
@@ -117,7 +117,7 @@ class SelectTest extends TestCase
         $query = $this->select->query("select * from users")
         ->where('id', '>', 10, 'and')
         ->where('firstName', '=', 'Alexandre')
-        ->order('order by id desc')
+        ->order('id', 'desc')
         ->limit(10)
         ->test();
 
@@ -137,10 +137,10 @@ class SelectTest extends TestCase
     {
         $query = $this->select->query("select * from users")
         ->join('inner join comments on comments.user_id = users.id')
-        ->join('on posts.user_id = users.id')
+        ->join('inner join posts on posts.user_id = users.id')
         ->test();
 
-        $this->assertEquals("select * from users inner join comments on comments.user_id = users.id on posts.user_id = users.id", $query->sql);
+        $this->assertEquals("select * from users inner join comments on comments.user_id = users.id inner join posts on posts.user_id = users.id", $query->sql);
     }
 
 
@@ -189,5 +189,78 @@ class SelectTest extends TestCase
         ->test();
 
         $this->assertEquals("select * from users inner join comments on comments.user_id = users.id where users.id > :usersid", $query->sql);
+    }
+
+    public function test_select_with_group()
+    {
+        $query = $this->select->query("select * from users")
+        ->group('id')
+        ->test();
+
+        $this->assertEquals("select * from users group by id", $query->sql);       
+    }
+
+    public function test_select_with_group_order_and_limit()
+    {
+        $query = $this->select->query("select * from users")
+        ->limit(10)
+        ->order('id','desc')
+        ->group('id')
+        ->test();
+
+        $this->assertEquals("select * from users group by id order by id desc limit 10", $query->sql);       
+    }
+
+    public function test_select_with_conditional_and_group_order_and_limit()
+    {
+        $query = $this->select->query("select * from users")
+        ->limit(10)
+        ->where('id','>', 10)
+        ->order('id','desc')
+        ->group('id')
+        ->test();
+
+        $this->assertEquals("select * from users where id > :id group by id order by id desc limit 10", $query->sql);       
+    }
+
+    public function test_select_with_fields_and_table_with_separated_methods()
+    {
+        $query = $this->select->fields("id,firstName,lastName")
+        ->table('users')
+        ->test();
+
+        $this->assertEquals("select id,firstName,lastName from users", $query->sql);        
+    }
+
+    public function test_if_table_and_fields_methods_called_not_accept_call_query_method()
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("if you call fields and table methods you cannot call query method");
+
+        $this->select->fields("id,firstName,lastName")
+        ->query("select * from users")
+        ->table('users')
+        ->test();     
+
+    }
+
+    public function test_if_table_called_table_but_not_fields()
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("You need both, fields and table methods");
+
+        $this->select->table('users')
+        ->test();     
+
+    }
+
+    public function test_if_table_called_fields_but_not_table()
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("You need both, fields and table methods");
+
+        $this->select->fields('users')
+        ->test();     
+
     }
 }

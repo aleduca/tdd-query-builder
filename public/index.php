@@ -5,13 +5,14 @@ use app\database\Delete;
 use app\database\Select;
 use app\database\Update;
 
-// $select = new Select;
-// $users = $select->query('select * from users')
-// ->where('users.id', '>', 200)
-// ->join('inner join comments on comments.user_id = users.id')
-// ->order('order by users.id desc')->get();
+$select = new Select;
+$users = $select->fields('users.id,firstName,lastName')
+->table('users')
+->where('users.id', '>', 120)
+->order('users.id','desc')->get();
 
-// var_dump($users);
+
+var_dump($users);
 
 // $update = new Update;
 // $updated = $update->update('users',[
@@ -24,6 +25,6 @@ use app\database\Update;
 // var_dump($updated);
 
 
-$delete = new Delete;
-$deleted = $delete->delete('users',['id', 201])->execute();
-var_dump($deleted);
+// $delete = new Delete;
+// $deleted = $delete->delete('users',['id', 201])->execute();
+// var_dump($deleted);
